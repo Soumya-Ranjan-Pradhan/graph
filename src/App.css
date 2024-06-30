@@ -1,0 +1,23 @@
+.body{
+  height: 100vh;
+  width: 100%;
+  background-color: aliceblue;
+  display: flex;
+  flex-direction:column;
+  justify-content: center;
+  align-items: center;
+}
+
+.chart{
+  background-color: white;
+  width: 600px;
+  height: 300px;
+  border-radius: 10px;
+  box-shadow: -3px 3px 10px rgba(0, 0, 0, 0.105);
+}
+
+.chart-container{
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
