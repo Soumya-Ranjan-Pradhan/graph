@@ -5,26 +5,31 @@ import { fetchData } from "../redux/chartSlice";
 
 const Trending = () => {
   const dispatch = useDispatch();
-  const { data, status } = useSelector((state) => state.chart);
+  const { data, status, error } = useSelector((state) => state.chart);
 
   useEffect(() => {
     dispatch(fetchData());
   }, [dispatch]);
 
-  if (status === "loading") {
-    return <div>Loading...</div>;
-  }
+  if (status === "loading") return <div>Loading...</div>;
+  if (status === "failed") return <div>Error loading data: {error}</div>;
+  if (!data?.by_month_year?.length) return <div>No data available</div>;
 
-  if (status === "failed") {
-    return <div>Error loading data.</div>;
-  }
+  const processedData = data.by_month_year
+    .map((item) => ({
+      ...item,
+      date: `${item.month}-${item.year}`,
+    }))
+    .sort(
+      (a, b) => new Date(a.year, a.month - 1) - new Date(b.year, b.month - 1)
+    );
 
-  const months = data.by_month_year.map((item) => `${item.month}-${item.year}`);
-  const scrapValues = data.by_month_year.map((item) =>
-    parseFloat(item.total_value_for_scrap)
-  );
-  const scrapQuantities = data.by_month_year.map((item) =>
+  const months = processedData.map((item) => item.date);
+  const scrapQuantities = processedData.map((item) =>
     parseFloat(item.total_scrap_quantity)
+  );
+  const scrapValues = processedData.map((item) =>
+    parseFloat(item.total_value_for_scrap)
   );
 
   const option = {
@@ -39,11 +44,6 @@ const Trending = () => {
       data: ["Scrap Value", "Scrap Quantity"],
       left: "center",
       top: "30px",
-      textStyle: {
-        backgroundColor: "#fff",
-        borderRadius: 5,
-        padding: [5, 10],
-      },
     },
     grid: {
       left: "3%",
@@ -58,8 +58,11 @@ const Trending = () => {
     },
     xAxis: {
       type: "category",
-      boundaryGap: false,
       data: months,
+      axisLabel: {
+        rotate: 45,
+        fontSize: 12,
+      },
     },
     yAxis: {
       type: "value",
@@ -68,25 +71,42 @@ const Trending = () => {
       {
         name: "Scrap Value",
         type: "line",
-        stack: "Total",
+        smooth: true,
         data: scrapValues,
+        label: {
+          show: true,
+          position: "top",
+          formatter: (params) => `₹${(params.value / 1000).toFixed(2)}k`,
+        },
         itemStyle: {
-          color: "black",
+          color: "orange",
         },
       },
       {
         name: "Scrap Quantity",
         type: "line",
-        stack: "Total",
+        smooth: true,
         data: scrapQuantities,
+        label: {
+          show: true,
+          position: "top",
+          formatter: (params) => `${(params.value / 1000).toFixed(2)}k`,
+        },
         itemStyle: {
-          color: "orange",
+          color: "black",
         },
       },
     ],
   };
 
-  return <ReactECharts option={option} notMerge={true} className="chart" />;
+  return (
+    <ReactECharts
+      option={option}
+      notMerge={true}
+      className="chart"
+      style={{ marginTop: "30px" }}
+    />
+  );
 };
 
 export default Trending;

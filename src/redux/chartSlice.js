@@ -3,7 +3,7 @@ import axios from "axios";
 
 const initialState = {
   loading: false,
-  data: null,
+  data: {},
   error: null,
 };
 
@@ -12,8 +12,12 @@ export const fetchData = createAsyncThunk("chart/fetchData", async () => {
     const response = await axios.get(
       "https://tetratrionofficial.github.io/hosted_api/assignment_dashboard.json"
     );
-    // console.log(response.data);
-    return response.data;
+
+    const cleanedText = response.data.replace("Apollo", "");
+
+    const data = JSON.parse(cleanedText);
+
+    return data;
   } catch (error) {
     console.error(error);
     throw error;

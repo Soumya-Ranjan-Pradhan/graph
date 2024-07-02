@@ -5,31 +5,28 @@ import { fetchData } from "../redux/chartSlice";
 
 const WorkCenter = () => {
   const dispatch = useDispatch();
-  const { data, loading, error } = useSelector((state) => state.chart);
+  const { data, status, error } = useSelector((state) => state.chart);
 
   useEffect(() => {
     dispatch(fetchData());
   }, [dispatch]);
 
-  if (loading) {
-    return <div>Loading...</div>;
-  }
-
-  if (error) {
-    return <div>Error loading data: {error}</div>;
-  }
-
-  if (!data || !data.by_work_center) {
-    return <div>No data available</div>;
-  }
+  if (status === "loading") return <div>Loading...</div>;
+  if (status === "failed") return <div>Error loading data: {error}</div>;
+  if (!data?.by_work_center?.length) return <div>No data available</div>;
 
   const workCenters = data.by_work_center.map((item) => item.work_center);
   const scrapCounts = data.by_work_center.map((item) =>
     parseFloat(item.total_scrap_quantity)
   );
-  const scrapPercentages = data.by_work_center.map(
-    (item, index) => ((index + 1) / workCenters.length) * 100
-  );
+  const totalScrap = scrapCounts.reduce((sum, value) => sum + value, 0);
+
+  const scrapPercentages = scrapCounts.map((qty, idx) => {
+    const cumulativeSum = scrapCounts
+      .slice(0, idx + 1)
+      .reduce((sum, value) => sum + value, 0);
+    return ((cumulativeSum / totalScrap) * 100).toFixed(2);
+  });
 
   const option = {
     title: {
@@ -48,8 +45,11 @@ const WorkCenter = () => {
     xAxis: {
       type: "category",
       data: workCenters,
-      axisPointer: {
-        type: "shadow",
+      axisLabel: {
+        rotate: 45,
+        textStyle: {
+          fontSize: 12,
+        },
       },
     },
     yAxis: [
@@ -57,7 +57,7 @@ const WorkCenter = () => {
         type: "value",
         name: "Scrap Count",
         min: 0,
-        max: 25000,
+        max: Math.max(...scrapCounts) + 5000,
         interval: 5000,
         axisLabel: {
           formatter: "{value}",
@@ -80,20 +80,18 @@ const WorkCenter = () => {
         type: "bar",
         barGap: "20%",
         itemStyle: {
-          normal: {
-            color: function (params) {
-              var colorList = [
-                "#FF69B4",
-                "#33CC33",
-                "#6666CC",
-                "#0099CC",
-                "#FFCC00",
-                "#CC0099",
-                "#0066CC",
-                "#CC6600",
-              ];
-              return colorList[params.dataIndex];
-            },
+          color: (params) => {
+            const colorList = [
+              "#FF69B4",
+              "#33CC33",
+              "#6666CC",
+              "#0099CC",
+              "#FFCC00",
+              "#CC0099",
+              "#0066CC",
+              "#CC6600",
+            ];
+            return colorList[params.dataIndex % colorList.length];
           },
         },
         data: scrapCounts,
@@ -102,10 +100,13 @@ const WorkCenter = () => {
         name: "Scrap %",
         type: "line",
         yAxisIndex: 1,
+        label: {
+          show: true,
+          position: "top",
+          formatter: "{c}%",
+        },
         itemStyle: {
-          normal: {
-            color: "#FF0000",
-          },
+          color: "#FF0000",
         },
         data: scrapPercentages,
       },
@@ -114,7 +115,12 @@ const WorkCenter = () => {
 
   return (
     <div style={{ height: "400px", width: "100%" }}>
-      <ReactECharts option={option} notMerge={true} className="chart" />
+      <ReactECharts
+        option={option}
+        notMerge={true}
+        className="chart"
+        style={{ marginTop: "30px" }}
+      />
     </div>
   );
 };
